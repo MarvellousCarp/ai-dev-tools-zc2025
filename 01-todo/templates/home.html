@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}TODO List{% endblock %}
+
+{% block content %}
+<div class="layout">
+    <!-- Левая панель: форма -->
+    <section class="panel">
+        <h2>Add task</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field-group">
+                <label>Title</label>
+                <input type="text" name="title" required placeholder="Task title">
+            </div>
+            <div class="field-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="Optional description"></textarea>
+            </div>
+            <div class="field-group">
+                <label>Due date</label>
+                <input type="date" name="due_date">
+            </div>
+            <button type="submit" class="btn btn-primary">+ Add</button>
+        </form>
+    </section>
+
+    <!-- Правая панель: табы + список -->
+    <section class="panel">
+        <h2>Tasks</h2>
+
+        <!-- ВОТ ЗДЕСЬ ТАБЫ -->
+        <div class="tabs">
+            <a href="{% url 'home' %}?filter=all"
+               class="tab {% if current_filter == 'all' %}tab--active{% endif %}">
+                ALL
+            </a>
+            <a href="{% url 'home' %}?filter=active"
+               class="tab {% if current_filter == 'active' %}tab--active{% endif %}">
+                ACTIVE
+            </a>
+            <a href="{% url 'home' %}?filter=completed"
+               class="tab {% if current_filter == 'completed' %}tab--active{% endif %}">
+                COMPLETED
+            </a>
+        </div>
+
+        <ul>
+            {% for task in tasks %}
+                <li>
+                    <!-- кнопка Done/Undo -->
+                    <form method="post"
+                          action="{% url 'toggle_task' task.id %}"
+                          class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-icon">
+                            {% if task.is_completed %}✓{% else %}○{% endif %}
+                        </button>
+                    </form>
+
+                    <!-- текст задачи -->
+                    <span class="{% if task.is_completed %}completed{% endif %}">
+                        {{ task.title }}
+                    </span>
+
+                    {% if task.due_date %}
+                        <span class="tag tag-due">Due: {{ task.due_date }}</span>
+                    {% endif %}
+                    {% if task.is_completed %}
+                        <span class="tag tag-done">Done</span>
+                    {% endif %}
+
+                    <!-- удалить -->
+                    <form method="post"
+                          action="{% url 'delete_task' task.id %}"
+                          class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-icon">✕</button>
+                    </form>
+
+                    {% if task.description %}
+                        <div style="font-size: 12px; color: #9ca3af; margin-left: 34px;">
+                            {{ task.description }}
+                        </div>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li>No tasks yet.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}
