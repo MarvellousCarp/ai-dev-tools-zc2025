@@ -100,7 +100,8 @@ class HomeViewTests(TestCase):
         content = response.content.decode()
 
         self.assertIn("Extra details", content)
-        self.assertIn("Due: 2024-01-01", content)
+        # Template renders due date with Django's medium date format (e.g., "Jan. 1, 2024")
+        self.assertIn("Due: Jan. 1, 2024", content)
         self.assertIn("Done", content)
 
     def test_filter_tabs_show_active_state(self):
