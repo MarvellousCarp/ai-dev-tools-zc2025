@@ -1,0 +1,13 @@
+{
+  "name": "coding-interview-platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev:server": "npm --workspace server run dev",
+    "dev:web": "npm --workspace web run dev",
+    "build": "npm --workspace web run build",
+    "lint": "npm --workspace web run lint",
+    "start": "npm --workspace server run start"
+  }
+}
