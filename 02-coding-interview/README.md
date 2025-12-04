@@ -48,7 +48,7 @@ npm run lint    # lints the web client
 ```
 
 ### Troubleshooting installs
-- Dependencies are pinned to published versions; `y-websocket` is pinned to `1.5.11` to avoid unavailable tags.
+- Dependencies are pinned to published versions; `y-websocket` is pinned to `1.5.10` (newer tags can be missing on some mirrors).
 - Ensure you run `npm install` from the workspace root so tools like `tsx` are installed for the server.
 
 ## Using the platform
