@@ -48,7 +48,7 @@ npm run lint    # lints the web client
 ```
 
 ### Troubleshooting installs
-- Dependencies are pinned to published versions; `y-websocket` is pinned to `1.5.10` (newer tags can be missing on some mirrors).
+- Dependencies are pinned to published versions. `y-websocket` is locked to `1.5.10` because that is the latest version published to the npm registry as of 2025-12; higher numbers (for example `1.5.11` or `1.5.12`) are not available and will trigger `ETARGET` errors. You can confirm this with `npm view y-websocket versions --json`.
 - Ensure you run `npm install` from the workspace root so tools like `tsx` are installed for the server.
 
 ## Using the platform
