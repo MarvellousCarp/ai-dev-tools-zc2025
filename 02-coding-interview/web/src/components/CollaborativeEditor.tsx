@@ -100,13 +100,16 @@ export function CollaborativeEditor({
     yTextRef.current = yText;
     providerRef.current = provider;
 
-    setCollabExtensions([yCollab(yText, provider.awareness)]);
+    // Hide remote cursors by omitting awareness from the yCollab binding while still
+    // keeping document sync and undo/redo support intact.
+    setCollabExtensions([yCollab(yText, undefined)]);
 
     const statusListener = ({ status }: { status: string }) => {
       setConnected(status === 'connected');
     };
 
     const awareness = provider.awareness;
+    awareness.setLocalState({});
     const updateCollaborators = () => setCollaborators(Math.max(awareness.getStates().size, 1));
 
     provider.on('status', statusListener);
