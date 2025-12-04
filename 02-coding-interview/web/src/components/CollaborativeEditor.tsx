@@ -1,4 +1,5 @@
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import type { Extension } from '@codemirror/state';
 import { cpp } from '@codemirror/lang-cpp';
 import { java } from '@codemirror/lang-java';
 import { javascript, typescript } from '@codemirror/lang-javascript';
@@ -14,7 +15,7 @@ export type LanguageOption = {
   id: LanguageId;
   label: string;
   sample: string;
-  extension: () => unknown;
+  extension: () => Extension;
 };
 
 const languageOptions: Record<LanguageId, LanguageOption> = {
