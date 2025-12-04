@@ -78,18 +78,16 @@ export function CollaborativeEditor({
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const [connected, setConnected] = useState(false);
   const [collaborators, setCollaborators] = useState(1);
+  const [collabExtensions, setCollabExtensions] = useState<Extension[]>([]);
   const ydocRef = useRef<Y.Doc>();
   const yTextRef = useRef<Y.Text>();
   const providerRef = useRef<WebsocketProvider>();
   const languageConfig = getLanguageOption(language);
 
   const extensions = useMemo<Extension[]>(() => {
-    const collab = yTextRef.current
-      ? [yCollab(yTextRef.current, providerRef.current?.awareness)]
-      : [];
     const langExtension = languageConfig.extension();
-    return [langExtension, ...collab];
-  }, [languageConfig]);
+    return [langExtension, ...collabExtensions];
+  }, [languageConfig, collabExtensions]);
 
   useEffect(() => {
     const ydoc = new Y.Doc();
@@ -101,6 +99,8 @@ export function CollaborativeEditor({
     ydocRef.current = ydoc;
     yTextRef.current = yText;
     providerRef.current = provider;
+
+    setCollabExtensions([yCollab(yText, provider.awareness)]);
 
     const statusListener = ({ status }: { status: string }) => {
       setConnected(status === 'connected');
@@ -129,6 +129,7 @@ export function CollaborativeEditor({
       yText.unobserve(broadcastContent);
       provider.destroy();
       ydoc.destroy();
+      setCollabExtensions([]);
     };
   }, [roomId, websocketUrl, onContentChange, languageConfig.sample, languageConfig.id]);
 
