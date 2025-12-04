@@ -59,12 +59,15 @@ npm run lint    # lints the web client
 Lightweight checks to prevent regressions and catch blank-screen errors early:
 
 ```bash
+npm install      # install dependencies at the repo root
 npm test         # runs lint + build for the web workspace
 ```
 
 What they cover:
 - **Lint**: ensures the React code compiles without runtime-breaking type or syntax errors.
 - **Build**: exercises the Vite/TypeScript build to surface issues that would prevent the app from rendering.
+
+If you see missing type-definition messages (for example, `vite/client` or React typings) during the build, delete any partial installs (`rm -rf node_modules package-lock.json`) and rerun `npm install` from the repo root so the workspace hoists common `@types/*` packages correctly.
 
 ### Troubleshooting installs
 - Dependencies are pinned to published versions. `y-websocket` is locked to `1.5.4`, which is the newest 1.x release published to the npm registry, and `y-protocols` is pinned to `^1.0.6` to align with the Yjs 13 + y-protocols 1.x stack. Higher 1.5.x numbers (for example `1.5.10` or `1.5.12`) and newer majors (2.x/3.x) are not available on all mirrors and may also be incompatible with this dependency set. You can confirm what your registry exposes with `npm view y-websocket versions --json`.
