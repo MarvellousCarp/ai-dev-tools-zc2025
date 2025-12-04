@@ -115,11 +115,17 @@ export function CollaborativeEditor({
     const broadcastContent = () => onContentChange(yText.toString());
     yText.observe(broadcastContent);
 
-    if (yText.length === 0) {
-      yText.insert(0, languageConfig.sample);
-    } else {
-      broadcastContent();
-    }
+    const hydrateSampleOnceSynced = (isSynced: boolean) => {
+      if (!isSynced) return;
+
+      if (yText.length === 0) {
+        yText.insert(0, languageConfig.sample);
+      } else {
+        broadcastContent();
+      }
+    };
+
+    provider.once('synced', hydrateSampleOnceSynced);
 
     updateCollaborators();
 
@@ -132,13 +138,6 @@ export function CollaborativeEditor({
       setCollabExtensions([]);
     };
   }, [roomId, websocketUrl, onContentChange, languageConfig.sample, languageConfig.id]);
-
-  useEffect(() => {
-    const yText = yTextRef.current;
-    if (yText && yText.length === 0) {
-      yText.insert(0, languageConfig.sample);
-    }
-  }, [languageConfig.sample]);
 
   return (
     <div className="editor-card">
