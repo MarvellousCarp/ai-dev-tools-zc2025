@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import { CollaborativeEditor, LanguageId } from './components/CollaborativeEditor';
+import { CollaborativeEditor, LanguageId, getLanguageOption } from './components/CollaborativeEditor';
 import { CodeRunner } from './components/CodeRunner';
 import './styles.css';
 
@@ -13,7 +13,7 @@ function getInitialRoom() {
 export default function App() {
   const [roomId, setRoomId] = useState<string>(getInitialRoom);
   const [language, setLanguage] = useState<LanguageId>('javascript');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(getLanguageOption('javascript').sample);
 
   const websocketUrl = useMemo(() => import.meta.env.VITE_COLLAB_ENDPOINT ?? 'ws://localhost:3001/collab', []);
   const shareLink = useMemo(() => {

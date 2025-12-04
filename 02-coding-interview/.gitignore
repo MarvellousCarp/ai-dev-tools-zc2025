@@ -4,3 +4,6 @@ npm-debug.log*
 server/dist
 web/dist
 .env
+# Generated from vite.config.ts
+web/vite.config.js
+web/vite.config.d.ts

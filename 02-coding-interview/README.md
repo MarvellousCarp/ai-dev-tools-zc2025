@@ -28,18 +28,26 @@ npm install
 ```
 
 ### Run the collaboration server
+Starts a small Express server that only handles collaboration (no code execution):
 ```bash
 npm run dev:server
 ```
 - Defaults: `PORT=3001`, `WEBSOCKET_PATH=/collab`.
 - Health check: `GET http://localhost:3001/health`.
+- Expected log: `Collaboration server listening on http://localhost:3001` and a WebSocket URL: `ws://localhost:3001/collab/{room}`.
 
 ### Run the web client
-In a separate terminal:
+Serves the React/Vite application:
 ```bash
 npm run dev:web
 ```
-The client reads the WebSocket endpoint from `VITE_COLLAB_ENDPOINT` (defaults to `ws://localhost:3001/collab`).
+- Vite prints the URL to open (typically `http://localhost:5173/`).
+- The client reads the WebSocket endpoint from `VITE_COLLAB_ENDPOINT` (defaults to `ws://localhost:3001/collab`).
+
+If the browser shows a blank screen:
+- Confirm dependencies are installed for all workspaces: `npm ci --workspaces --include-workspace-root`.
+- Check the dev server console for build errors—fixing TypeScript/ESLint errors locally prevents silent failures in the browser.
+- Verify the collaboration server is reachable at `http://localhost:3001/health` and that `VITE_COLLAB_ENDPOINT` matches `WEBSOCKET_PATH`.
 
 ### Build and lint
 ```bash
@@ -47,16 +55,43 @@ npm run build   # builds the web client
 npm run lint    # lints the web client
 ```
 
+### Tests
+Lightweight checks to prevent regressions and catch blank-screen errors early:
+
+```bash
+npm install      # install dependencies at the repo root
+npm test         # runs lint + build for the web workspace
+```
+
+What they cover:
+- **Lint**: ensures the React code compiles without runtime-breaking type or syntax errors.
+- **Build**: exercises the Vite/TypeScript build to surface issues that would prevent the app from rendering.
+
+If you see missing type-definition messages (for example, `vite/client` or React typings) during the build, delete any partial installs (`rm -rf node_modules package-lock.json`) and rerun `npm install` from the repo root so the workspace hoists common `@types/*` packages correctly.
+
 ### Troubleshooting installs
 - Dependencies are pinned to published versions. `y-websocket` is locked to `1.5.4`, which is the newest 1.x release published to the npm registry, and `y-protocols` is pinned to `^1.0.6` to align with the Yjs 13 + y-protocols 1.x stack. Higher 1.5.x numbers (for example `1.5.10` or `1.5.12`) and newer majors (2.x/3.x) are not available on all mirrors and may also be incompatible with this dependency set. You can confirm what your registry exposes with `npm view y-websocket versions --json`.
 - Ensure you run `npm install` from the workspace root so tools like `tsx` are installed for the server.
 
 ## Using the platform
-1. Start the server and the client.
-2. Open the client in your browser. A session ID is generated automatically and reflected in the URL.
-3. Copy the shareable link and send it to a candidate—everyone in the same room edits the same document.
-4. Switch languages to adjust syntax highlighting.
-5. Run JavaScript/TypeScript snippets safely in-browser via the "Run" button. Other languages are collaborative-only.
+1. Start the server and the client using the commands above (two terminals).
+2. Open the Vite URL in your browser (e.g., `http://localhost:5173/`). You should see a code editor, language selector, and **Run** button.
+3. A room ID is automatically appended to the URL (e.g., `http://localhost:5173/room/abc123`). Copy this full URL to invite another participant.
+4. When another person opens the same URL, you should see their cursor and text changes live. Everyone in the room edits the same document.
+5. Use the language dropdown to switch syntax highlighting between JavaScript, TypeScript, Python, Java, and C++.
+6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. The output appears below the editor. Other languages are for collaboration only.
+7. Refreshing the page or sharing the link retains the document content for that room via the Yjs document synced through the collaboration server.
+
+### Example session (what you should see)
+- After starting both processes, visit the client URL. The editor will load with a default language (JavaScript) and a generated room URL.
+- Paste a simple snippet and click **Run**:
+  ```js
+  // JavaScript example
+  function add(a, b) { return a + b; }
+  console.log('2 + 3 =', add(2, 3));
+  ```
+  The output panel should display `2 + 3 = 5`.
+- Open the same room URL in another browser window or share it. You should see remote cursors and simultaneous text updates as you and the other participant type.
 
 ## Notes on safety
 - Collaboration traffic is relay-only; source code never executes on the server.

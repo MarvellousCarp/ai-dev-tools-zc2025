@@ -1,5 +1,9 @@
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { langs } from '@uiw/codemirror-extensions-langs';
+import type { Extension } from '@codemirror/state';
+import { cpp } from '@codemirror/lang-cpp';
+import { java } from '@codemirror/lang-java';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
 import { WebsocketProvider } from 'y-websocket';
@@ -11,7 +15,7 @@ export type LanguageOption = {
   id: LanguageId;
   label: string;
   sample: string;
-  extension: () => unknown;
+  extension: () => Extension;
 };
 
 const languageOptions: Record<LanguageId, LanguageOption> = {
@@ -19,39 +23,38 @@ const languageOptions: Record<LanguageId, LanguageOption> = {
     id: 'javascript',
     label: 'JavaScript',
     sample: `// Write JavaScript here\nfunction sum(a, b) {\n  return a + b;\n}\n\nconsole.log('Ready to interview!');\nconsole.log('2 + 2 =', sum(2, 2));`,
-    extension: () => langs.javascript({ jsx: true, typescript: true }),
+    extension: () => javascript({ jsx: true, typescript: true }),
   },
   typescript: {
-  id: 'typescript',
-  label: 'TypeScript',
-  sample: `// TypeScript example
-    type Candidate = { name: string; years: number };
+    id: 'typescript',
+    label: 'TypeScript',
+    sample: `// TypeScript example
+type Candidate = { name: string; years: number };
 
-  const applicant: Candidate = { name: 'Alex', years: 5 };
+const applicant: Candidate = { name: 'Alex', years: 5 };
 
-  const format = (candidate: Candidate) =>
-  candidate.name + ' (' + candidate.years + 'y)';
-  console.log('Candidate:', format(applicant));`,
-  extension: () => langs.typescript({ jsx: true, typescript: true }),
-},
+const format = (candidate: Candidate) => candidate.name + ' (' + candidate.years + 'y)';
+console.log('Candidate:', format(applicant));`,
+    extension: () => javascript({ jsx: true, typescript: true }),
+  },
 
   python: {
     id: 'python',
     label: 'Python',
-    sample: '# Python sample\n\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint("fib(10)=", fib(10))',
-    extension: () => langs.python(),
+    sample: `# Python sample\n\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint("fib(10)=", fib(10))`,
+    extension: () => python(),
   },
   cpp: {
     id: 'cpp',
     label: 'C++',
     sample: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    cout << "Hello, interviewer!" << endl;\n    return 0;\n}',
-    extension: () => langs.cpp(),
+    extension: () => cpp(),
   },
   java: {
     id: 'java',
     label: 'Java',
     sample: 'public class Interview {\n  public static void main(String[] args) {\n    System.out.println("Pair up and code!");\n  }\n}',
-    extension: () => langs.java(),
+    extension: () => java(),
   },
 };
 
@@ -80,7 +83,7 @@ export function CollaborativeEditor({
   const providerRef = useRef<WebsocketProvider>();
   const languageConfig = getLanguageOption(language);
 
-  const extensions = useMemo(() => {
+  const extensions = useMemo<Extension[]>(() => {
     const collab = yTextRef.current
       ? [yCollab(yTextRef.current, providerRef.current?.awareness)]
       : [];
@@ -149,7 +152,7 @@ export function CollaborativeEditor({
         ref={editorRef}
         theme="dark"
         height="500px"
-        extensions={extensions as never}
+        extensions={extensions}
         basicSetup={{ lineNumbers: true, foldGutter: true, bracketMatching: true }}
         editable
       />
