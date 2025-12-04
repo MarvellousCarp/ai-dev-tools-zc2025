@@ -52,7 +52,12 @@ const sandboxTemplate = `
 
 export function CodeRunner({ code, language }: CodeRunnerProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
-  const [result, setResult] = useState<RunResult>({ output: 'Waiting to run…', timestamp: new Date().toLocaleTimeString() });
+  const readyTimeoutRef = useRef<number>();
+  const [result, setResult] = useState<RunResult>({
+    output:
+      'Click “Run” to execute in a sandboxed iframe. JavaScript and TypeScript run fully in-browser; other languages stay collaboration-only.',
+    timestamp: '—',
+  });
   const runnable = useMemo(() => RUNNABLE_LANGUAGES.includes(language), [language]);
 
   useEffect(() => {
@@ -77,44 +82,70 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
     return () => window.removeEventListener('message', listener);
   }, []);
 
-  const run = () => {
+  const run = async () => {
     if (!runnable) {
       setResult({
-        output: 'In-browser execution is available for JavaScript and TypeScript. Use the live editor for other languages.',
+        output:
+          'Browser-only execution is enabled for JavaScript and TypeScript. Python/Java/C++ would need WebAssembly runtimes plus multi-megabyte stdlib bootstraps (e.g., Pyodide adds 10–15 MB compressed and a multi-second init), which we avoid in this lightweight demo.',
         timestamp: new Date().toLocaleTimeString(),
       });
       return;
     }
 
+    setResult({ output: 'Running inside sandbox…', timestamp: new Date().toLocaleTimeString() });
+
     if (frameRef.current) {
       frameRef.current.remove();
+    }
+
+    let source = code;
+    if (language === 'typescript') {
+      try {
+        const ts = await import('typescript');
+        source = ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+      } catch (err) {
+        setResult({
+          output: `⚠️ Unable to transpile TypeScript: ${err instanceof Error ? err.message : String(err)}`,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        return;
+      }
     }
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts');
     iframe.style.display = 'none';
+    iframe.srcdoc = sandboxTemplate;
     document.body.appendChild(iframe);
     frameRef.current = iframe;
 
-    const doc = iframe.contentDocument;
-    if (!doc) return;
-    doc.open();
-    doc.write(sandboxTemplate);
-    doc.close();
-
     const postCode = () => {
-      iframe.contentWindow?.postMessage({ source: 'host', code }, '*');
+      window.removeEventListener('message', readyListener);
+      window.clearTimeout(readyTimeoutRef.current);
+      iframe.contentWindow?.postMessage({ source: 'host', code: source }, '*');
     };
 
     const readyListener = (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow || !event.data || event.data.source !== 'code-runner') return;
       if (event.data.payload.type === 'ready') {
         postCode();
-        window.removeEventListener('message', readyListener);
       }
     };
 
     window.addEventListener('message', readyListener);
+
+    readyTimeoutRef.current = window.setTimeout(() => {
+      setResult({
+        output: '⚠️ The sandbox did not respond. Please try again or check your browser settings.',
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      window.removeEventListener('message', readyListener);
+    }, 2000);
+
+    iframe.onload = () => {
+      // If the iframe loads but the ready message is missed, still attempt to post code.
+      postCode();
+    };
   };
 
   return (
