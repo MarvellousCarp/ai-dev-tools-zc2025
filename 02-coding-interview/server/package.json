@@ -12,7 +12,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "ws": "^8.18.0",
-    "y-websocket": "^1.5.10",
+    "y-websocket": "1.5.4",
     "yjs": "^13.6.19"
   },
   "devDependencies": {
