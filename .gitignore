@@ -1,3 +1,6 @@
+# ----------------------------------------
+# PYTHON
+# ----------------------------------------
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
@@ -33,7 +36,38 @@ media/
 .env
 .env.*
 
-# IDE/editor
+# ----------------------------------------
+# NODE / JS / NEXT.JS
+# ----------------------------------------
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Next.js
+.next/
+.next/cache/
+!.next/static/.gitkeep
+
+# Svelte/Vite (if relevant)
+.vite/
+vite.config.js.timestamp*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# ----------------------------------------
+# OS / EDITORS
+# ----------------------------------------
 .vscode/
 .idea/
 .DS_Store
