@@ -6,7 +6,8 @@ A real-time coding interview environment with collaborative editing, multi-langu
 - **Shareable sessions**: Generate a unique link for each interview room and share it with candidates.
 - **Live collaboration**: Everyone connected to the same room edits together through Yjs + WebSocket sync.
 - **Syntax highlighting**: JavaScript, TypeScript, Python, Java, and C++ via CodeMirror 6.
-- **Safe browser execution**: Run JavaScript/TypeScript snippets inside a sandboxed iframe—no server execution required.
+- **Safe browser execution**: Run JavaScript/TypeScript snippets inside a sandboxed iframe—no server execution required. Other languages are editable for collaboration only because shipping WebAssembly runtimes (e.g., Pyodide is ~10–15 MB compressed plus a multi-second init) would bloat the demo bundle.
+- **Shared output panel**: The latest run result is synced to everyone in the room so interviewers and candidates see the same logs.
 - **Separation of concerns**: Tiny Node.js collaboration server and a Vite + React front-end client.
 
 ## Project layout
@@ -79,8 +80,65 @@ If you see missing type-definition messages (for example, `vite/client` or React
 3. A room ID is automatically appended to the URL (e.g., `http://localhost:5173/room/abc123`). Copy this full URL to invite another participant.
 4. When another person opens the same URL, you should see their cursor and text changes live. Everyone in the room edits the same document.
 5. Use the language dropdown to switch syntax highlighting between JavaScript, TypeScript, Python, Java, and C++.
-6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. The output appears below the editor. Other languages are for collaboration only.
+6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. The output appears below the editor and stays in sync for everyone in the same room. Other languages are for collaboration only because shipping full WebAssembly runtimes (for instance, Pyodide is ~10–15 MB compressed before initialization) would bloat the demo bundle (see `web/docs/runner.md`).
 7. Refreshing the page or sharing the link retains the document content for that room via the Yjs document synced through the collaboration server.
+
+### Language quick templates
+Use these snippets to sanity-check syntax highlighting or to share a consistent starting point during interviews. JavaScript/TypeScript run in-browser; the others are collaboration-only.
+
+- **JavaScript**
+  ```js
+  const nums = [1, 2, 3, 4];
+  const doubled = nums.map((n) => n * 2);
+  console.log('Doubled array:', doubled);
+  ```
+
+- **TypeScript**
+  ```ts
+  type User = { name: string; active: boolean };
+
+  const users: User[] = [
+    { name: 'Asha', active: true },
+    { name: 'Lee', active: false },
+  ];
+
+  const active = users.filter((u) => u.active).map((u) => u.name);
+  console.log('Active users:', active.join(', '));
+  ```
+
+- **Python**
+  ```py
+  def reverse_words(sentence: str) -> str:
+      return ' '.join(reversed(sentence.split()))
+
+  print(reverse_words('pair programming is fun'))
+  ```
+
+- **Java**
+  ```java
+  public class Starter {
+      public static void main(String[] args) {
+          int sum = 0;
+          for (int i = 1; i <= 5; i++) {
+              sum += i;
+          }
+          System.out.println("Sum from 1 to 5: " + sum);
+      }
+  }
+  ```
+
+- **C++**
+  ```cpp
+  #include <bits/stdc++.h>
+  using namespace std;
+
+  int main() {
+      vector<int> data = {3, 1, 4, 1, 5};
+      sort(data.begin(), data.end());
+      for (int n : data) cout << n << ' ';
+      return 0;
+  }
+  ```
 
 ### Example session (what you should see)
 - After starting both processes, visit the client URL. The editor will load with a default language (JavaScript) and a generated room URL.
