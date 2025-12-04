@@ -83,7 +83,7 @@ export function CollaborativeEditor({
   const providerRef = useRef<WebsocketProvider>();
   const languageConfig = getLanguageOption(language);
 
-  const extensions = useMemo(() => {
+  const extensions = useMemo<Extension[]>(() => {
     const collab = yTextRef.current
       ? [yCollab(yTextRef.current, providerRef.current?.awareness)]
       : [];
@@ -152,7 +152,7 @@ export function CollaborativeEditor({
         ref={editorRef}
         theme="dark"
         height="500px"
-        extensions={extensions as never}
+        extensions={extensions}
         basicSetup={{ lineNumbers: true, foldGutter: true, bracketMatching: true }}
         editable
       />
