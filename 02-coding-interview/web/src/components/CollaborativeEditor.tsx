@@ -2,7 +2,7 @@ import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import type { Extension } from '@codemirror/state';
 import { cpp } from '@codemirror/lang-cpp';
 import { java } from '@codemirror/lang-java';
-import { javascript, typescript } from '@codemirror/lang-javascript';
+import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
@@ -35,13 +35,13 @@ const applicant: Candidate = { name: 'Alex', years: 5 };
 
 const format = (candidate: Candidate) => candidate.name + ' (' + candidate.years + 'y)';
 console.log('Candidate:', format(applicant));`,
-    extension: () => typescript({ jsx: true, typescript: true }),
+    extension: () => javascript({ jsx: true, typescript: true }),
   },
 
   python: {
     id: 'python',
     label: 'Python',
-    sample: '# Python sample\n\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint("fib(10)=", fib(10))',
+    sample: `# Python sample\n\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint("fib(10)=", fib(10))`,
     extension: () => python(),
   },
   cpp: {
