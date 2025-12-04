@@ -20,7 +20,7 @@
     "react-dom": "^18.3.1",
     "uuid": "^10.0.0",
     "y-protocols": "^1.0.7",
-    "y-websocket": "^1.5.12",
+    "y-websocket": "^1.5.11",
     "yjs": "^13.6.19",
     "y-codemirror.next": "^0.3.1",
     "@uiw/codemirror-extensions-langs": "^4.23.9"

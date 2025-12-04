@@ -47,6 +47,10 @@ npm run build   # builds the web client
 npm run lint    # lints the web client
 ```
 
+### Troubleshooting installs
+- Dependencies are pinned to published versions; `y-websocket` is pinned to `1.5.11` to avoid unavailable tags.
+- Ensure you run `npm install` from the workspace root so tools like `tsx` are installed for the server.
+
 ## Using the platform
 1. Start the server and the client.
 2. Open the client in your browser. A session ID is generated automatically and reflected in the URL.
