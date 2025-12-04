@@ -22,18 +22,17 @@ const languageOptions: Record<LanguageId, LanguageOption> = {
     extension: () => langs.javascript({ jsx: true, typescript: true }),
   },
   typescript: {
-  id: 'typescript',
-  label: 'TypeScript',
-  sample: `// TypeScript example
-    type Candidate = { name: string; years: number };
+    id: 'typescript',
+    label: 'TypeScript',
+    sample: `// TypeScript example
+type Candidate = { name: string; years: number };
 
-  const applicant: Candidate = { name: 'Alex', years: 5 };
+const applicant: Candidate = { name: 'Alex', years: 5 };
 
-  const format = (candidate: Candidate) =>
-  candidate.name + ' (' + candidate.years + 'y)';
-  console.log('Candidate:', format(applicant));`,
-  extension: () => langs.typescript({ jsx: true, typescript: true }),
-},
+const format = (candidate: Candidate) => candidate.name + ' (' + candidate.years + 'y)';
+console.log('Candidate:', format(applicant));`,
+    extension: () => langs.typescript({ jsx: true, typescript: true }),
+  },
 
   python: {
     id: 'python',
