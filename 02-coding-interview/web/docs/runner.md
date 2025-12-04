@@ -13,6 +13,7 @@ Other languages in the editor dropdown (Python, Java, C++) are not executed in t
 2. The harness overrides `console` methods to capture logs and errors, then posts them back to the host via `postMessage`.
 3. For TypeScript, the client transpiles the snippet to modern JavaScript with `typescript.transpileModule` before sending it to the iframe.
 4. The runner times out if the sandbox does not respond, helping users diagnose blocked iframes or browser settings.
+5. After a run completes, the output is written to a shared Yjs map so every participant in the room sees the same log history and timestamp.
 
 ## Why we haven’t inlined Python/Java/C++ yet
 - **Runtime + stdlib weight**: Even with compression, Pyodide + its standard library adds 10–15 MB and unpacks to tens of megabytes in memory. Java/C++ toolchains compiled to WebAssembly are similar or heavier.
@@ -81,3 +82,4 @@ Use these as quick sanity checks when switching the language dropdown:
 - Keep snippets self-contained; the sandbox cannot reach external URLs or the parent DOM.
 - Use `console.log` to surface output. Errors are also captured and displayed in the output panel.
 - If the sandbox fails to respond, retry or check for browser extensions that block iframes.
+- The output area separates logs from the "Last run" timestamp to avoid embedded escape characters and keep the history readable.

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 import { LanguageId } from './CollaborativeEditor';
 
 const RUNNABLE_LANGUAGES: LanguageId[] = ['javascript', 'typescript'];
@@ -11,6 +13,14 @@ type RunResult = {
 type CodeRunnerProps = {
   code: string;
   language: LanguageId;
+  roomId: string;
+  websocketUrl: string;
+};
+
+const DEFAULT_RESULT: RunResult = {
+  output:
+    'Click “Run” to execute in a sandboxed iframe. JavaScript and TypeScript run fully in-browser; other languages stay collaboration-only.',
+  timestamp: '—',
 };
 
 const sandboxTemplate = `
@@ -50,22 +60,63 @@ const sandboxTemplate = `
 </html>
 `;
 
-export function CodeRunner({ code, language }: CodeRunnerProps) {
+export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const readyTimeoutRef = useRef<number>();
-  const [result, setResult] = useState<RunResult>({
-    output:
-      'Click “Run” to execute in a sandboxed iframe. JavaScript and TypeScript run fully in-browser; other languages stay collaboration-only.',
-    timestamp: '—',
-  });
+  const runStateRef = useRef<Y.Map<RunResult>>();
+  const [result, setResult] = useState<RunResult>(DEFAULT_RESULT);
   const runnable = useMemo(() => RUNNABLE_LANGUAGES.includes(language), [language]);
+
+  const syncResultState = useCallback((next: RunResult) => {
+    setResult(next);
+    const stateMap = runStateRef.current;
+    if (stateMap) {
+      stateMap.set('result', next);
+    }
+  }, []);
+
+  useEffect(() => {
+    const ydoc = new Y.Doc();
+    const provider = new WebsocketProvider(websocketUrl, roomId, ydoc, {
+      connect: true,
+    });
+    const runMap = ydoc.getMap<RunResult>('runner');
+
+    runStateRef.current = runMap;
+
+    const hydrateFromSharedState = () => {
+      const shared = runMap.get('result');
+      if (shared) {
+        setResult(shared);
+      }
+    };
+
+    const observeSharedState = (_event: Y.YMapEvent<RunResult>) => {
+      hydrateFromSharedState();
+    };
+
+    runMap.observe(observeSharedState);
+    provider.once('synced', () => {
+      if (!runMap.has('result')) {
+        runMap.set('result', DEFAULT_RESULT);
+      }
+      hydrateFromSharedState();
+    });
+
+    return () => {
+      runMap.unobserve(observeSharedState);
+      provider.destroy();
+      ydoc.destroy();
+      runStateRef.current = undefined;
+    };
+  }, [roomId, websocketUrl]);
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (!event.data || event.data.source !== 'code-runner') return;
       const { payload } = event.data;
       if (payload.type === 'error') {
-        setResult({
+        syncResultState({
           output: `⚠️ Error: ${payload.text}${payload.meta ? ` (line ${payload.meta.line})` : ''}`,
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -74,17 +125,17 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
         const formatted = payload.logs
           .map((entry: { method: string; text: string }) => `${entry.method.toUpperCase()}: ${entry.text}`)
           .join('\n');
-        setResult({ output: formatted || 'No output', timestamp: new Date().toLocaleTimeString() });
+        syncResultState({ output: formatted || 'No output', timestamp: new Date().toLocaleTimeString() });
       }
     };
 
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
-  }, []);
+  }, [syncResultState]);
 
   const run = async () => {
     if (!runnable) {
-      setResult({
+      syncResultState({
         output:
           'Browser-only execution is enabled for JavaScript and TypeScript. Python/Java/C++ would need WebAssembly runtimes plus multi-megabyte stdlib bootstraps (e.g., Pyodide adds 10–15 MB compressed and a multi-second init), which we avoid in this lightweight demo.',
         timestamp: new Date().toLocaleTimeString(),
@@ -92,7 +143,7 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
       return;
     }
 
-    setResult({ output: 'Running inside sandbox…', timestamp: new Date().toLocaleTimeString() });
+    syncResultState({ output: 'Running inside sandbox…', timestamp: new Date().toLocaleTimeString() });
 
     if (frameRef.current) {
       frameRef.current.remove();
@@ -104,7 +155,7 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
         const ts = await import('typescript');
         source = ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
       } catch (err) {
-        setResult({
+        syncResultState({
           output: `⚠️ Unable to transpile TypeScript: ${err instanceof Error ? err.message : String(err)}`,
           timestamp: new Date().toLocaleTimeString(),
         });
@@ -135,7 +186,7 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
     window.addEventListener('message', readyListener);
 
     readyTimeoutRef.current = window.setTimeout(() => {
-      setResult({
+      syncResultState({
         output: '⚠️ The sandbox did not respond. Please try again or check your browser settings.',
         timestamp: new Date().toLocaleTimeString(),
       });
@@ -155,7 +206,10 @@ export function CodeRunner({ code, language }: CodeRunnerProps) {
         <p className="helper">Executes inside a sandboxed iframe without server access.</p>
       </div>
       <button className="button" onClick={run}>Run ({language})</button>
-      <div className="runner-log">{result.output}\n\nLast run: {result.timestamp}</div>
+      <div className="runner-log">
+        <div className="runner-log-output">{result.output}</div>
+        <div className="runner-log-timestamp">Last run: {result.timestamp}</div>
+      </div>
     </div>
   );
 }

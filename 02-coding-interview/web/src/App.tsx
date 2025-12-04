@@ -85,7 +85,7 @@ export default function App() {
           language={language}
           onContentChange={onContentChange}
         />
-        <CodeRunner code={code} language={language} />
+        <CodeRunner code={code} language={language} roomId={roomId} websocketUrl={websocketUrl} />
       </div>
 
       <section>
