@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import { CollaborativeEditor, LanguageId, getLanguageOption } from './components/CollaborativeEditor';
+import { CollaborativeEditor } from './components/CollaborativeEditor';
+import type { LanguageId } from './components/languageOptions';
+import { getLanguageOption } from './components/languageOptions';
 import { CodeRunner } from './components/CodeRunner';
 import './styles.css';
 

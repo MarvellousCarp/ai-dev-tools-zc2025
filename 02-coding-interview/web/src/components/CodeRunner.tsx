@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
-import { LanguageId } from './CollaborativeEditor';
+import { LanguageId } from './languageOptions';
 
 const RUNNABLE_LANGUAGES: LanguageId[] = ['javascript', 'typescript'];
 
@@ -91,7 +91,7 @@ export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerP
       }
     };
 
-    const observeSharedState = (_event: Y.YMapEvent<RunResult>) => {
+    const observeSharedState = () => {
       hydrateFromSharedState();
     };
 
