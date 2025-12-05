@@ -6,5 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0'
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './vitest.setup.ts',
+    environmentMatchGlobs: [
+      ['src/__tests__/integration/**', 'node']
+    ]
   }
 });

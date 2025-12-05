@@ -60,13 +60,16 @@ npm run lint    # lints the web client
 Lightweight checks to prevent regressions and catch blank-screen errors early:
 
 ```bash
-npm install      # install dependencies at the repo root
-npm test         # runs lint + build for the web workspace
+npm install                # install dependencies at the repo root
+npm test                   # lint + build + all Vitest suites (unit + integration)
+npm --workspace web test   # runs only the Vitest suites in web/src/__tests__
 ```
 
 What they cover:
 - **Lint**: ensures the React code compiles without runtime-breaking type or syntax errors.
 - **Build**: exercises the Vite/TypeScript build to surface issues that would prevent the app from rendering.
+- **Unit tests**: jsdom-based Vitest specs that verify collaborative editor behavior, including participant counts and awareness cleanup.
+- **Integration tests**: Node-based Vitest specs that boot the collaboration server and assert Yjs synchronization between WebSocket clients plus the `/health` endpoint.
 
 If you see missing type-definition messages (for example, `vite/client` or React typings) during the build, delete any partial installs (`rm -rf node_modules package-lock.json`) and rerun `npm install` from the repo root so the workspace hoists common `@types/*` packages correctly.
 

@@ -136,6 +136,7 @@ export function CollaborativeEditor({
       provider.off('status', statusListener);
       awareness.off('change', updateCollaborators);
       yText.unobserve(broadcastContent);
+      awareness.setLocalState(null);
       provider.destroy();
       ydoc.destroy();
       setCollabExtensions([]);
