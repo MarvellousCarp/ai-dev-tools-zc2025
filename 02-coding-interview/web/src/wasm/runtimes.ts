@@ -97,7 +97,12 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
     iframe.setAttribute('sandbox', 'allow-scripts');
     iframe.style.display = 'none';
     iframe.srcdoc = iframeSandboxTemplate;
-    document.body.appendChild(iframe);
+    
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener('message', handleMessage);
+      iframe.remove();
+    };
 
     const timeout = window.setTimeout(() => {
       cleanup();
@@ -105,7 +110,9 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
     }, 8000);
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.source !== iframe.contentWindow || !event.data || event.data.source !== 'wasm-proxy') return;
+      if (!event.data || event.data.source !== 'wasm-proxy') return;
+      if (event.source !== iframe.contentWindow) return;
+
       const payload = event.data.payload;
       if (payload.type === 'ready') {
         iframe.contentWindow?.postMessage({ source: 'host', language, code }, '*');
@@ -122,13 +129,9 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
       }
     };
 
-    const cleanup = () => {
-      window.clearTimeout(timeout);
-      window.removeEventListener('message', handleMessage);
-      iframe.remove();
-    };
-
+    // Attach listener before injecting the iframe into the DOM to avoid missing the initial "ready" message.
     window.addEventListener('message', handleMessage);
+    document.body.appendChild(iframe);
   });
 }
 
