@@ -111,13 +111,15 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
 
     const handleMessage = (event: MessageEvent) => {
       if (!event.data || event.data.source !== 'wasm-proxy') return;
-      if (event.source !== iframe.contentWindow) return;
+      // Some browsers set event.source to null for sandboxed iframes without
+      // allow-same-origin. Rely on the message marker instead of the source
+      // window reference so we don't drop the ready/error notifications.
 
       const payload = event.data.payload;
-      if (payload.type === 'ready') {
-        iframe.contentWindow?.postMessage({ source: 'host', language, code }, '*');
-        return;
-      }
+        if (payload.type === 'ready') {
+          iframe.contentWindow?.postMessage({ source: 'host', language, code }, '*');
+          return;
+        }
       if (payload.type === 'logs') {
         cleanup();
         resolve({ output: payload.text });
