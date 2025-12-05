@@ -45,6 +45,13 @@ npm run dev:web
 - Vite prints the URL to open (typically `http://localhost:5173/`).
 - The client reads the WebSocket endpoint from `VITE_COLLAB_ENDPOINT` (defaults to `ws://localhost:3001/collab`).
 
+### Run server and client together
+Use the combined workspace script to launch both services in parallel (helpful for local development):
+```bash
+npm run dev
+```
+- Starts the collaboration server and the Vite dev server simultaneously in one terminal.
+
 If the browser shows a blank screen:
 - Confirm dependencies are installed for all workspaces: `npm ci --workspaces --include-workspace-root`.
 - Check the dev server console for build errors—fixing TypeScript/ESLint errors locally prevents silent failures in the browser.
