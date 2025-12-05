@@ -1,5 +1,7 @@
+import React from 'react';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as YWebsocketModule from 'y-websocket';
 
 import { CollaborativeEditor } from '../../components/CollaborativeEditor';
 
@@ -7,11 +9,18 @@ afterEach(() => {
   cleanup();
 });
 
-vi.mock('@uiw/react-codemirror', () => ({
-  __esModule: true,
-  default: () => <div data-testid="codemirror" />,
-  ReactCodeMirrorRef: {},
-}));
+// ✅ Define the CodeMirror mock entirely inside the factory
+vi.mock('@uiw/react-codemirror', () => {
+  const CodeMirrorMock = React.forwardRef<HTMLDivElement, Record<string, unknown>>(
+    (_props, ref) => <div data-testid="codemirror" ref={ref} />
+  );
+
+  return {
+    __esModule: true,
+    default: CodeMirrorMock,
+    ReactCodeMirrorRef: {},
+  };
+});
 
 vi.mock('@codemirror/lang-javascript', () => ({
   javascript: () => ({}),
@@ -33,108 +42,133 @@ vi.mock('y-codemirror.next', () => ({
   yCollab: () => ({}),
 }));
 
-type AwarenessChangeHandler = () => void;
+// ✅ Define the websocket mock entirely inside the factory
+vi.mock('y-websocket', () => {
+  type AwarenessChangeHandler = () => void;
 
-class AwarenessMock {
-  public lastLocalState: unknown = undefined;
-  private readonly states = new Map<string, unknown>();
-  private readonly changeHandlers = new Set<AwarenessChangeHandler>();
+  class AwarenessMock {
+    public lastLocalState: unknown = undefined;
+    private readonly states = new Map<string, unknown>();
+    private readonly changeHandlers = new Set<AwarenessChangeHandler>();
 
-  getStates() {
-    return this.states;
-  }
-
-  setLocalState(state: unknown) {
-    this.lastLocalState = state;
-
-    if (state === null) {
-      this.states.delete('local');
-    } else {
-      this.states.set('local', state);
+    getStates() {
+      return this.states;
     }
 
-    this.emitChange();
-  }
+    setLocalState(state: unknown) {
+      this.lastLocalState = state;
 
-  addRemote(id: string, state: unknown = {}) {
-    this.states.set(id, state);
-    this.emitChange();
-  }
+      if (state === null) {
+        this.states.delete('local');
+      } else {
+        this.states.set('local', state);
+      }
 
-  removeRemote(id: string) {
-    this.states.delete(id);
-    this.emitChange();
-  }
-
-  on(event: 'change', handler: AwarenessChangeHandler) {
-    if (event === 'change') {
-      this.changeHandlers.add(handler);
+      this.emitChange();
     }
-  }
 
-  off(event: 'change', handler: AwarenessChangeHandler) {
-    if (event === 'change') {
-      this.changeHandlers.delete(handler);
+    addRemote(id: string, state: unknown = {}) {
+      this.states.set(id, state);
+      this.emitChange();
     }
-  }
 
-  private emitChange() {
-    this.changeHandlers.forEach((handler) => handler());
-  }
-}
+    removeRemote(id: string) {
+      this.states.delete(id);
+      this.emitChange();
+    }
 
-type StatusHandler = (event: { status: string }) => void;
-type SyncedHandler = (synced: boolean) => void;
+    on(event: 'change', handler: AwarenessChangeHandler) {
+      if (event === 'change') {
+        this.changeHandlers.add(handler);
+      }
+    }
 
-class WebsocketProviderMock {
-  public awareness = new AwarenessMock();
-  public readonly statusHandlers = new Set<StatusHandler>();
-  public readonly syncedHandlers = new Set<SyncedHandler>();
-  public destroyed = false;
+    off(event: 'change', handler: AwarenessChangeHandler) {
+      if (event === 'change') {
+        this.changeHandlers.delete(handler);
+      }
+    }
 
-  constructor() {
-    websocketMock.instances.add(this);
-  }
-
-  on(event: 'status', handler: StatusHandler) {
-    if (event === 'status') {
-      this.statusHandlers.add(handler);
+    private emitChange() {
+      this.changeHandlers.forEach((handler) => handler());
     }
   }
 
-  once(event: 'synced', handler: SyncedHandler) {
-    if (event === 'synced') {
-      this.syncedHandlers.add(handler);
+  type StatusHandler = (event: { status: string }) => void;
+  type SyncedHandler = (synced: boolean) => void;
+
+  const instances = new Set<any>();
+
+  class WebsocketProviderMock {
+    public awareness = new AwarenessMock();
+    public readonly statusHandlers = new Set<StatusHandler>();
+    public readonly syncedHandlers = new Set<SyncedHandler>();
+    public destroyed = false;
+
+    constructor() {
+      instances.add(this);
+    }
+
+    on(event: 'status', handler: StatusHandler) {
+      if (event === 'status') {
+        this.statusHandlers.add(handler);
+      }
+    }
+
+    once(event: 'synced', handler: SyncedHandler) {
+      if (event === 'synced') {
+        this.syncedHandlers.add(handler);
+      }
+    }
+
+    off(event: 'status', handler: StatusHandler) {
+      if (event === 'status') {
+        this.statusHandlers.delete(handler);
+      }
+    }
+
+    destroy() {
+      this.destroyed = true;
+    }
+
+    emitStatus(status: string) {
+      this.statusHandlers.forEach((handler) => handler({ status }));
+    }
+
+    emitSynced(synced: boolean) {
+      this.syncedHandlers.forEach((handler) => handler(synced));
+      this.syncedHandlers.clear();
     }
   }
 
-  off(event: 'status', handler: StatusHandler) {
-    if (event === 'status') {
-      this.statusHandlers.delete(handler);
-    }
-  }
+  const websocketMock = {
+    instances: instances as Set<WebsocketProviderMock>,
+  };
 
-  destroy() {
-    this.destroyed = true;
-  }
+  return {
+    __esModule: true,
+    WebsocketProvider: WebsocketProviderMock,
+    __mock: websocketMock,
+  };
+});
 
-  emitStatus(status: string) {
-    this.statusHandlers.forEach((handler) => handler({ status }));
-  }
+// Get access to the helper object exported from the mocked module
+const websocketMock = (YWebsocketModule as any).__mock as {
+  instances: Set<{
+    awareness: {
+      addRemote(id: string, state?: unknown): void;
+      removeRemote(id: string): void;
+      getStates(): Map<string, unknown>;
+      lastLocalState: unknown;
+      setLocalState(state: unknown): void;
+    };
+  }>;
+};
 
-  emitSynced(synced: boolean) {
-    this.syncedHandlers.forEach((handler) => handler(synced));
-    this.syncedHandlers.clear();
-  }
-}
-
-const websocketMock = { instances: new Set<WebsocketProviderMock>() };
-
-vi.mock('y-websocket', () => ({
-  __esModule: true,
-  WebsocketProvider: WebsocketProviderMock,
-  __mock: websocketMock,
-}));
+// Make sure each test gets a fresh provider instance set
+beforeEach(() => {
+  websocketMock.instances.clear();
+});
 
 describe('CollaborativeEditor participants', () => {
   const defaultProps = {
@@ -147,7 +181,7 @@ describe('CollaborativeEditor participants', () => {
   it('updates the participant count when remote collaborators join or leave', async () => {
     render(<CollaborativeEditor {...defaultProps} />);
 
-    const [provider] = websocketMock.instances;
+    const [provider] = websocketMock.instances as any;
 
     await waitFor(() => {
       expect(screen.getByText('1 participant(s)')).toBeTruthy();
@@ -169,7 +203,7 @@ describe('CollaborativeEditor participants', () => {
   it('clears the local awareness state on unmount to avoid ghost participants', async () => {
     const { unmount } = render(<CollaborativeEditor {...defaultProps} />);
 
-    const [provider] = websocketMock.instances;
+    const [provider] = websocketMock.instances as any;
 
     provider.awareness.addRemote('peer-1');
 
@@ -179,8 +213,10 @@ describe('CollaborativeEditor participants', () => {
 
     unmount();
 
-    expect(provider.awareness.getStates().size).toBe(1);
-    expect(provider.awareness.getStates().has('local')).toBe(false);
+    const states = provider.awareness.getStates();
+
+    expect(states.size).toBe(1);
+    expect(states.has('local')).toBe(false);
     expect(provider.awareness.lastLocalState).toBeNull();
   });
 });
