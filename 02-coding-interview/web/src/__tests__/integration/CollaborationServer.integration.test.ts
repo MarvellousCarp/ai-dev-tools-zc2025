@@ -7,6 +7,16 @@ import { createCollaborationServer } from '../../../../server/src/server';
 
 type ServerInstance = ReturnType<typeof createCollaborationServer>;
 
+class NodeWebSocket extends WS {
+  dispatchEvent(event: Event): boolean {
+    // The DOM EventTarget API expects a boolean return to signal if preventDefault was called.
+    // ws exposes an EventEmitter interface; return whether any listeners were invoked.
+    return this.emit(event.type, event);
+  }
+}
+
+const WebSocketPolyfill = NodeWebSocket as unknown as typeof WebSocket;
+
 async function waitForCondition(check: () => boolean, timeoutMs = 4000) {
   const start = Date.now();
 
@@ -55,10 +65,10 @@ describe('client + server integration', () => {
     const docB = new Y.Doc();
 
     const providerA = new WebsocketProvider(websocketUrl, room, docA, {
-      WebSocketPolyfill: WS,
+      WebSocketPolyfill,
     });
     const providerB = new WebsocketProvider(websocketUrl, room, docB, {
-      WebSocketPolyfill: WS,
+      WebSocketPolyfill,
     });
 
     const textA = docA.getText('content');

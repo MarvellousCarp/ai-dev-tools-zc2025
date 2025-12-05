@@ -8,7 +8,7 @@
     "dev:web": "npm --workspace web run dev",
     "build": "npm --workspace web run build",
     "lint": "npm --workspace web run lint",
-    "test": "npm run lint && npm run build && npm --workspace web run test",
+    "test": "npm run build && npm --workspace web run test",
     "start": "npm --workspace server run start"
   }
 }

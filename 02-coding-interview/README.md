@@ -61,13 +61,14 @@ Lightweight checks to prevent regressions and catch blank-screen errors early:
 
 ```bash
 npm install                # install dependencies at the repo root
-npm test                   # lint + build + all Vitest suites (unit + integration)
+npm test                   # build + all Vitest suites (unit + integration)
 npm --workspace web test   # runs only the Vitest suites in web/src/__tests__
+npm run lint               # optional: ESLint for the web workspace
 ```
 
 What they cover:
-- **Lint**: ensures the React code compiles without runtime-breaking type or syntax errors.
 - **Build**: exercises the Vite/TypeScript build to surface issues that would prevent the app from rendering.
+- **Lint** (optional): ensures the React code compiles without runtime-breaking type or syntax errors.
 - **Unit tests**: jsdom-based Vitest specs that verify collaborative editor behavior, including participant counts and awareness cleanup.
 - **Integration tests**: Node-based Vitest specs that boot the collaboration server and assert Yjs synchronization between WebSocket clients plus the `/health` endpoint.
 

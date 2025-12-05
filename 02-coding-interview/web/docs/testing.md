@@ -11,9 +11,9 @@ e websocket clients.
 Run these from the repository root (`02-coding-interview/`):
 
 ```bash
-npm run lint             # ESLint for the web workspace
 npm run build            # TypeScript project references + Vite production build
 npm --workspace web test # Vitest unit + integration tests under web/src/__tests__
+npm run lint             # Optional: ESLint for the web workspace
 ```
 
 ## Coverage
