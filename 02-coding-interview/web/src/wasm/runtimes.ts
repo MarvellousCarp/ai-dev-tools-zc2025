@@ -16,6 +16,36 @@ const iframeSandboxTemplate = `
     <script>
       const send = (message) => parent.postMessage({ source: 'wasm-proxy', payload: message }, '*');
 
+      const interceptConsole = () => {
+        const buffer = [];
+        const original = { ...console };
+        const formatArg = (item) => {
+          if (typeof item === 'string') return item;
+          try {
+            return JSON.stringify(item);
+          } catch (err) {
+            return String(item);
+          }
+        };
+        const capture = (method) => {
+          console[method] = (...args) => {
+            buffer.push(args.map(formatArg).join(' '));
+            // eslint-disable-next-line prefer-spread
+            return original[method]?.apply(console, args);
+          };
+        };
+
+        capture('log');
+        capture('info');
+        capture('warn');
+        capture('error');
+
+        return {
+          flush: () => buffer.join('\n'),
+          restore: () => Object.assign(console, original),
+        };
+      };
+
       window.onerror = (msg, url, line, col) => {
         send({ type: 'error', text: msg, meta: { line, col, url } });
       };
@@ -23,25 +53,31 @@ const iframeSandboxTemplate = `
       window.addEventListener('message', async (event) => {
         if (!event.data || event.data.source !== 'host' || typeof event.data.code !== 'string') return;
         const { language, code } = event.data;
+        const { flush, restore } = interceptConsole();
         try {
           if (language === 'python') {
             const { output } = await runPython(code);
-            send({ type: 'logs', text: output });
+            const consoleOutput = flush();
+            send({ type: 'logs', text: [output, consoleOutput].filter(Boolean).join('\n') || 'No output' });
             return;
           }
           if (language === 'java') {
             const transpiled = transpileJavaToJs(code);
             const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
             await new AsyncFunction(transpiled)();
-            send({ type: 'logs', text: 'Program finished without errors.' });
+            send({ type: 'logs', text: flush() || 'Program finished without console output.' });
             return;
           }
           const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
           const runnable = new AsyncFunction(code);
           await runnable();
-          send({ type: 'logs', text: 'Program finished without errors.' });
+          send({ type: 'logs', text: flush() || 'Program finished without console output.' });
         } catch (err) {
-          send({ type: 'error', text: err?.message || String(err) });
+          const message = err?.message || String(err);
+          const logs = flush();
+          send({ type: 'error', text: logs ? `${message}\n${logs}` : message });
+        } finally {
+          restore();
         }
       });
 
@@ -107,7 +143,7 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
     const timeout = window.setTimeout(() => {
       cleanup();
       reject(new Error('Sandbox did not respond in time'));
-    }, 8000);
+    }, 15000);
 
     const handleMessage = (event: MessageEvent) => {
       if (!event.data || event.data.source !== 'wasm-proxy') return;
@@ -116,10 +152,10 @@ async function runInIframe(code: string, language: LanguageId): Promise<RuntimeR
       // window reference so we don't drop the ready/error notifications.
 
       const payload = event.data.payload;
-        if (payload.type === 'ready') {
-          iframe.contentWindow?.postMessage({ source: 'host', language, code }, '*');
-          return;
-        }
+      if (payload.type === 'ready') {
+        iframe.contentWindow?.postMessage({ source: 'host', language, code }, '*');
+        return;
+      }
       if (payload.type === 'logs') {
         cleanup();
         resolve({ output: payload.text });
