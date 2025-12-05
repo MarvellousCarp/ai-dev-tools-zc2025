@@ -16,9 +16,9 @@
     "start": "npm --workspace server run start"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.15",
+    "concurrently": "^9.2.1",
     "vitest": "^4.0.15"
   }
 }
