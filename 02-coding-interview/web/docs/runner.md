@@ -1,12 +1,14 @@
 # Sandboxed code runner
 
-This client ships with a browser-only runner that executes code inside a sandboxed `<iframe>` with the `allow-scripts` flag and no network access.
+This client ships with a browser-only runner that executes code inside a sandboxed `<iframe>` with the `allow-scripts` flag and no network access. JavaScript/TypeScript are transpiled and evaluated, Python uses Pyodide's WebAssembly runtime, and Java is transpiled to JavaScript for evaluation. C++ remains collaboration-only.
 
 ## Supported languages
-- **JavaScript**: executed directly in the iframe.
+- **JavaScript**: executed through the sandbox harness.
 - **TypeScript**: transpiled in-browser to JavaScript before execution.
+- **Python**: executed via Pyodide (loaded on-demand from its CDN) inside the sandboxed iframe.
+- **Java**: transpiled to JavaScript for evaluation. Only console-style programs are supported.
 
-Other languages in the editor dropdown (Python, Java, C++) are not executed in the browser because embedding full runtimes (for example, Pyodide or LLVM toolchains compiled to WebAssembly) would significantly increase bundle size and loading time for the demo. Pyodide alone adds roughly 10–15 MB compressed **plus** a multi-second initialization that downloads standard-library files into the browser before a snippet can run. For this lightweight demo we keep those runtimes out of the bundle so the page loads fast and stays offline-friendly.
+C++ continues to be collaboration-only.
 
 ## How it works
 1. Clicking **Run** creates a fresh hidden iframe whose `srcdoc` contains a tiny harness.
@@ -15,13 +17,10 @@ Other languages in the editor dropdown (Python, Java, C++) are not executed in t
 4. The runner times out if the sandbox does not respond, helping users diagnose blocked iframes or browser settings.
 5. After a run completes, the output is written to a shared Yjs map so every participant in the room sees the same log history and timestamp.
 
-## Why we haven’t inlined Python/Java/C++ yet
-- **Runtime + stdlib weight**: Even with compression, Pyodide + its standard library adds 10–15 MB and unpacks to tens of megabytes in memory. Java/C++ toolchains compiled to WebAssembly are similar or heavier.
-- **Initialization latency**: Loading the runtime, mounting a virtual filesystem, and warming up the interpreter typically takes a few seconds before the first line of user code executes. That hurts the “instant try-it” experience we want for this demo.
-- **Build/tooling changes**: Shipping Pyodide requires async bootstrapping code, service-worker caching, and tighter sandboxing policies for the virtual FS. Adding LLVM-based toolchains for Java/C++ would also bloat the Vite build and slow down hot-module reload.
-- **Security surface**: More complex runtimes mean larger attack surfaces and more knobs to secure (filesystem APIs, networking inhibitions, WASM capabilities). Keeping the iframe JavaScript-only dramatically reduces this risk.
-
-If you need in-browser Python, the recommended approach is to load Pyodide from its CDN on-demand, cache it with a service worker, and stream code through `pyodide.runPythonAsync`. That work is feasible but intentionally out-of-scope for this minimal demo to keep the bundle small and easy to self-host.
+## Notes on the WebAssembly-backed runtimes
+- **On-demand loading**: Pyodide is streamed from its CDN when the first Python snippet runs to keep the initial bundle small.
+- **Transpilation trade-offs**: Java snippets are transpiled to JavaScript, so console-focused programs work best; more advanced JVM features remain out of scope for this demo.
+- **Isolation**: Everything still executes inside the iframe sandbox to avoid leaking access to the host DOM or network.
 
 ## Sample snippets by language
 Use these as quick sanity checks when switching the language dropdown:
@@ -48,7 +47,7 @@ Use these as quick sanity checks when switching the language dropdown:
   console.log('Distance from origin:', distance({ x: 0, y: 0 }, { x: 3, y: 4 }));
   ```
 
-- **Python** (collaboration-only)
+- **Python**
   ```py
   from collections import Counter
 
@@ -57,7 +56,7 @@ Use these as quick sanity checks when switching the language dropdown:
   print("Most common word:", freq.most_common(1)[0])
   ```
 
-- **Java** (collaboration-only)
+- **Java**
   ```java
   public class Interview {
       public static void main(String[] args) {
