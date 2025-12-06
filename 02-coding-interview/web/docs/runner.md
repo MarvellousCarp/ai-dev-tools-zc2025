@@ -5,23 +5,26 @@ This client ships with a browser-only runner that executes code inside a sandbox
 ## Supported languages
 - **JavaScript**: executed directly in the iframe.
 - **TypeScript**: transpiled in-browser to JavaScript before execution.
+- **Python**: executed via [Pyodide](https://pyodide.org/) loaded on demand from the CDN (WebAssembly).
+- **Java/C++**: collaboration-only in the editor; no runtime is shipped for them.
 
-Other languages in the editor dropdown (Python, Java, C++) are not executed in the browser because embedding full runtimes (for example, Pyodide or LLVM toolchains compiled to WebAssembly) would significantly increase bundle size and loading time for the demo. Pyodide alone adds roughly 10–15 MB compressed **plus** a multi-second initialization that downloads standard-library files into the browser before a snippet can run. For this lightweight demo we keep those runtimes out of the bundle so the page loads fast and stays offline-friendly.
+## Python prerequisites
+- A modern browser with WebAssembly enabled (Pyodide uses WebAssembly under the hood).
+- Network access to `https://cdn.jsdelivr.net/pyodide/v0.24.1/full/` to download the runtime and standard library (~10–15 MB compressed). The first Python run may take a few seconds while this initializes; subsequent runs reuse the loaded runtime.
+- Sandbox remains offline: after loading, the Python code still executes without network access inside the iframe.
 
 ## How it works
 1. Clicking **Run** creates a fresh hidden iframe whose `srcdoc` contains a tiny harness.
 2. The harness overrides `console` methods to capture logs and errors, then posts them back to the host via `postMessage`.
 3. For TypeScript, the client transpiles the snippet to modern JavaScript with `typescript.transpileModule` before sending it to the iframe.
-4. The runner times out if the sandbox does not respond, helping users diagnose blocked iframes or browser settings.
-5. After a run completes, the output is written to a shared Yjs map so every participant in the room sees the same log history and timestamp.
+4. For Python, the iframe lazy-loads Pyodide from the CDN, redirects `stdout`/`stderr` into in-memory buffers, and executes the user snippet with `pyodide.runPythonAsync`.
+5. The runner times out if the sandbox does not respond, helping users diagnose blocked iframes or browser settings.
+6. After a run completes, the output is written to a shared Yjs map so every participant in the room sees the same log history and timestamp.
 
-## Why we haven’t inlined Python/Java/C++ yet
-- **Runtime + stdlib weight**: Even with compression, Pyodide + its standard library adds 10–15 MB and unpacks to tens of megabytes in memory. Java/C++ toolchains compiled to WebAssembly are similar or heavier.
-- **Initialization latency**: Loading the runtime, mounting a virtual filesystem, and warming up the interpreter typically takes a few seconds before the first line of user code executes. That hurts the “instant try-it” experience we want for this demo.
-- **Build/tooling changes**: Shipping Pyodide requires async bootstrapping code, service-worker caching, and tighter sandboxing policies for the virtual FS. Adding LLVM-based toolchains for Java/C++ would also bloat the Vite build and slow down hot-module reload.
-- **Security surface**: More complex runtimes mean larger attack surfaces and more knobs to secure (filesystem APIs, networking inhibitions, WASM capabilities). Keeping the iframe JavaScript-only dramatically reduces this risk.
-
-If you need in-browser Python, the recommended approach is to load Pyodide from its CDN on-demand, cache it with a service worker, and stream code through `pyodide.runPythonAsync`. That work is feasible but intentionally out-of-scope for this minimal demo to keep the bundle small and easy to self-host.
+## Notes on bundle size and performance
+- Pyodide is loaded only when Python is selected to avoid inflating the initial page bundle.
+- Expect an initial 10–15 MB download for Pyodide plus a few seconds of warm-up on the first Python run; later runs reuse the initialized interpreter.
+- Java and C++ would require additional WebAssembly toolchains, so they remain collaboration-only to keep this demo lightweight.
 
 ## Sample snippets by language
 Use these as quick sanity checks when switching the language dropdown:
@@ -48,7 +51,7 @@ Use these as quick sanity checks when switching the language dropdown:
   console.log('Distance from origin:', distance({ x: 0, y: 0 }, { x: 3, y: 4 }));
   ```
 
-- **Python** (collaboration-only)
+- **Python**
   ```py
   from collections import Counter
 
@@ -80,6 +83,6 @@ Use these as quick sanity checks when switching the language dropdown:
 
 ## Usage tips
 - Keep snippets self-contained; the sandbox cannot reach external URLs or the parent DOM.
-- Use `console.log` to surface output. Errors are also captured and displayed in the output panel.
+- Use `console.log` (JS/TS) or `print` (Python) to surface output. Errors are also captured and displayed in the output panel.
 - If the sandbox fails to respond, retry or check for browser extensions that block iframes.
 - The output area separates logs from the "Last run" timestamp to avoid embedded escape characters and keep the history readable.

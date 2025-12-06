@@ -6,7 +6,7 @@ A real-time coding interview environment with collaborative editing, multi-langu
 - **Shareable sessions**: Generate a unique link for each interview room and share it with candidates.
 - **Live collaboration**: Everyone connected to the same room edits together through Yjs + WebSocket sync.
 - **Syntax highlighting**: JavaScript, TypeScript, Python, Java, and C++ via CodeMirror 6.
-- **Safe browser execution**: Run JavaScript/TypeScript snippets inside a sandboxed iframe—no server execution required. Other languages are editable for collaboration only because shipping WebAssembly runtimes (e.g., Pyodide is ~10–15 MB compressed plus a multi-second init) would bloat the demo bundle.
+- **Safe browser execution**: Run JavaScript/TypeScript snippets inside a sandboxed iframe—no server execution required. Python also executes fully in-browser through Pyodide (WASM), downloaded on demand. Java and C++ remain collaboration-only.
 - **Shared output panel**: The latest run result is synced to everyone in the room so interviewers and candidates see the same logs.
 - **Separation of concerns**: Tiny Node.js collaboration server and a Vite + React front-end client.
 
@@ -21,6 +21,8 @@ A real-time coding interview environment with collaborative editing, multi-langu
 ## Prerequisites
 - Node.js 18+
 - npm 9+
+- A modern browser with WebAssembly enabled (required for Python/Pyodide execution)
+- Network access to `https://cdn.jsdelivr.net/pyodide/v0.24.1/full/` to download the Python runtime
 
 ## Getting started
 Install all workspace dependencies (from the `02-coding-interview` folder):
@@ -91,11 +93,11 @@ If you see missing type-definition messages (for example, `vite/client` or React
 3. A room ID is automatically appended to the URL (e.g., `http://localhost:5173/room/abc123`). Copy this full URL to invite another participant.
 4. When another person opens the same URL, you should see their cursor and text changes live. Everyone in the room edits the same document.
 5. Use the language dropdown to switch syntax highlighting between JavaScript, TypeScript, Python, Java, and C++.
-6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. The output appears below the editor and stays in sync for everyone in the same room. Other languages are for collaboration only because shipping full WebAssembly runtimes (for instance, Pyodide is ~10–15 MB compressed before initialization) would bloat the demo bundle (see `web/docs/runner.md`).
+6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. Python downloads Pyodide on demand and then runs entirely in the browser (no server execution). The output appears below the editor and stays in sync for everyone in the same room. Java and C++ remain collaboration-only (see `web/docs/runner.md`).
 7. Refreshing the page or sharing the link retains the document content for that room via the Yjs document synced through the collaboration server.
 
 ### Language quick templates
-Use these snippets to sanity-check syntax highlighting or to share a consistent starting point during interviews. JavaScript/TypeScript run in-browser; the others are collaboration-only.
+Use these snippets to sanity-check syntax highlighting or to share a consistent starting point during interviews. JavaScript/TypeScript run in-browser, Python runs via Pyodide, and Java/C++ are collaboration-only.
 
 - **JavaScript**
   ```js
