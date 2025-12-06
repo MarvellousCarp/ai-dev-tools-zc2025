@@ -84,20 +84,22 @@ const pythonSandboxTemplate = `
         try {
           const pyodide = await pyodideReady;
           const userCode = event.data.code;
-          const pythonCode = `
-import sys, io, traceback
-from contextlib import redirect_stdout, redirect_stderr
-
-_stdout, _stderr = io.StringIO(), io.StringIO()
-ns = {}
-code = ${JSON.stringify(userCode)}
-try:
-    with redirect_stdout(_stdout), redirect_stderr(_stderr):
-        exec(compile(code, "<sandbox>", "exec"), ns, ns)
-except Exception:
-    traceback.print_exc()
-{"stdout": _stdout.getvalue(), "stderr": _stderr.getvalue()}
-`;
+          const pythonCode = [
+            'import sys, io, traceback',
+            'from contextlib import redirect_stdout, redirect_stderr',
+            '',
+            '_stdout, _stderr = io.StringIO(), io.StringIO()',
+            'ns = {}',
+            'code = ' + JSON.stringify(userCode),
+            'try:',
+            '    with redirect_stdout(_stdout), redirect_stderr(_stderr):',
+            "        exec(compile(code, '<sandbox>', 'exec'), ns, ns)",
+            'except Exception:',
+            '    traceback.print_exc()',
+            '__result__ = {"stdout": _stdout.getvalue(), "stderr": _stderr.getvalue()}',
+            '',
+            '__result__',
+          ].join('\n');
 
           const execution = await pyodide.runPythonAsync(pythonCode);
           send({ type: 'python-result', result: execution });
