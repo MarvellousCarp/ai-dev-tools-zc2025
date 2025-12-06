@@ -3,7 +3,7 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import { LanguageId } from './languageOptions';
 
-const RUNNABLE_LANGUAGES: LanguageId[] = ['javascript', 'typescript'];
+const RUNNABLE_LANGUAGES: LanguageId[] = ['javascript', 'typescript', 'python'];
 
 type RunResult = {
   output: string;
@@ -19,11 +19,11 @@ type CodeRunnerProps = {
 
 const DEFAULT_RESULT: RunResult = {
   output:
-    'Click “Run” to execute in a sandboxed iframe. JavaScript and TypeScript run fully in-browser; other languages stay collaboration-only.',
+    'Click “Run” to execute in a sandboxed iframe. JavaScript, TypeScript, and Python run fully in-browser; Java/C++ stay collaboration-only.',
   timestamp: '—',
 };
 
-const sandboxTemplate = `
+const javascriptSandboxTemplate = `
 <!doctype html>
 <html>
   <body>
@@ -38,7 +38,7 @@ const sandboxTemplate = `
         };
       });
 
-      window.onerror = (msg, url, line, col, error) => {
+      window.onerror = (msg, url, line, col) => {
         send({ type: 'error', text: msg, meta: { line, col, url } });
       };
 
@@ -59,6 +59,59 @@ const sandboxTemplate = `
   </body>
 </html>
 `;
+
+const pythonSandboxTemplate = `
+<!doctype html>
+<html>
+  <body>
+    <script type="module">
+      const send = (message) => parent.postMessage({ source: 'code-runner', payload: message }, '*');
+
+      const pyodideReady = (async () => {
+        try {
+          const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
+          return await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/' });
+        } catch (err) {
+          send({ type: 'error', text: err?.message ?? String(err) });
+          throw err;
+        }
+      })();
+
+      pyodideReady.then(() => send({ type: 'ready' })).catch(() => {});
+
+      window.addEventListener('message', async (event) => {
+        if (!event.data || event.data.source !== 'host' || typeof event.data.code !== 'string') return;
+        try {
+          const pyodide = await pyodideReady;
+          const userCode = event.data.code;
+          const pythonCode = `
+import sys, io, traceback
+from contextlib import redirect_stdout, redirect_stderr
+
+_stdout, _stderr = io.StringIO(), io.StringIO()
+ns = {}
+code = ${JSON.stringify(userCode)}
+try:
+    with redirect_stdout(_stdout), redirect_stderr(_stderr):
+        exec(compile(code, "<sandbox>", "exec"), ns, ns)
+except Exception:
+    traceback.print_exc()
+{"stdout": _stdout.getvalue(), "stderr": _stderr.getvalue()}
+`;
+
+          const execution = await pyodide.runPythonAsync(pythonCode);
+          send({ type: 'python-result', result: execution });
+        } catch (err) {
+          send({ type: 'error', text: err?.message ?? String(err) });
+        }
+      });
+    </script>
+  </body>
+</html>
+`;
+
+const sandboxTemplate = (language: LanguageId) =>
+  language === 'python' ? pythonSandboxTemplate : javascriptSandboxTemplate;
 
 export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerProps) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
@@ -121,6 +174,18 @@ export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerP
           timestamp: new Date().toLocaleTimeString(),
         });
       }
+      if (payload.type === 'python-result') {
+        const stdout = payload.result?.stdout ?? '';
+        const stderr = payload.result?.stderr ?? '';
+        const sections = [
+          stdout ? `STDOUT:\n${stdout.trim()}` : '',
+          stderr ? `STDERR:\n${stderr.trim()}` : '',
+        ].filter(Boolean);
+        syncResultState({
+          output: sections.join('\n\n') || 'No output',
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
       if (payload.type === 'logs') {
         const formatted = payload.logs
           .map((entry: { method: string; text: string }) => `${entry.method.toUpperCase()}: ${entry.text}`)
@@ -137,13 +202,19 @@ export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerP
     if (!runnable) {
       syncResultState({
         output:
-          'Browser-only execution is enabled for JavaScript and TypeScript. Python/Java/C++ would need WebAssembly runtimes plus multi-megabyte stdlib bootstraps (e.g., Pyodide adds 10–15 MB compressed and a multi-second init), which we avoid in this lightweight demo.',
+          'Browser-only execution is enabled for JavaScript, TypeScript, and Python. Java/C++ would need additional WebAssembly toolchains that are intentionally out of scope for this demo.',
         timestamp: new Date().toLocaleTimeString(),
       });
       return;
     }
 
-    syncResultState({ output: 'Running inside sandbox…', timestamp: new Date().toLocaleTimeString() });
+    syncResultState({
+      output:
+        language === 'python'
+          ? 'Initializing Pyodide (downloads the Python runtime WebAssembly payload)…'
+          : 'Running inside sandbox…',
+      timestamp: new Date().toLocaleTimeString(),
+    });
 
     if (frameRef.current) {
       frameRef.current.remove();
@@ -166,14 +237,14 @@ export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerP
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts');
     iframe.style.display = 'none';
-    iframe.srcdoc = sandboxTemplate;
+    iframe.srcdoc = sandboxTemplate(language);
     document.body.appendChild(iframe);
     frameRef.current = iframe;
 
     const postCode = () => {
       window.removeEventListener('message', readyListener);
       window.clearTimeout(readyTimeoutRef.current);
-      iframe.contentWindow?.postMessage({ source: 'host', code: source }, '*');
+      iframe.contentWindow?.postMessage({ source: 'host', code: source, language }, '*');
     };
 
     const readyListener = (event: MessageEvent) => {
@@ -191,7 +262,7 @@ export function CodeRunner({ code, language, roomId, websocketUrl }: CodeRunnerP
         timestamp: new Date().toLocaleTimeString(),
       });
       window.removeEventListener('message', readyListener);
-    }, 2000);
+    }, language === 'python' ? 12000 : 2000);
 
     iframe.onload = () => {
       // If the iframe loads but the ready message is missed, still attempt to post code.
