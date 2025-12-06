@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 import { CollaborativeEditor } from './components/CollaborativeEditor';
 import type { LanguageId } from './components/languageOptions';
 import { getLanguageOption } from './components/languageOptions';
@@ -16,6 +18,8 @@ export default function App() {
   const [roomId, setRoomId] = useState<string>(getInitialRoom);
   const [language, setLanguage] = useState<LanguageId>('javascript');
   const [code, setCode] = useState(getLanguageOption('javascript').sample);
+  const settingsRef = useRef<Y.Map<LanguageId>>();
+  const languageRef = useRef(language);
 
   const websocketUrl = useMemo(() => import.meta.env.VITE_COLLAB_ENDPOINT ?? 'ws://localhost:3001/collab', []);
   const shareLink = useMemo(() => {
@@ -36,6 +40,54 @@ export default function App() {
     url.searchParams.set('room', newRoom);
     window.history.replaceState({}, '', url.toString());
   };
+
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
+
+  useEffect(() => {
+    const ydoc = new Y.Doc();
+    const provider = new WebsocketProvider(websocketUrl, roomId, ydoc, { connect: true });
+    const settings = ydoc.getMap<LanguageId>('settings');
+    settingsRef.current = settings;
+
+    const applySharedLanguage = () => {
+      const shared = settings.get('language');
+      if (shared && shared !== languageRef.current) {
+        setLanguage(shared);
+      }
+    };
+
+    const handleChange = (event: Y.YMapEvent<LanguageId>) => {
+      if (event.keysChanged.has('language')) {
+        applySharedLanguage();
+      }
+    };
+
+    settings.observe(handleChange);
+
+    provider.once('synced', () => {
+      if (!settings.has('language')) {
+        settings.set('language', languageRef.current);
+      } else {
+        applySharedLanguage();
+      }
+    });
+
+    return () => {
+      settings.unobserve(handleChange);
+      provider.destroy();
+      ydoc.destroy();
+      settingsRef.current = undefined;
+    };
+  }, [roomId, websocketUrl]);
+
+  useEffect(() => {
+    const settings = settingsRef.current;
+    if (settings && settings.get('language') !== language) {
+      settings.set('language', language);
+    }
+  }, [language]);
 
   const onContentChange = useCallback((content: string) => setCode(content), []);
 
