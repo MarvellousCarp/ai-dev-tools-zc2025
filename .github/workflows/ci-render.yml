@@ -1,0 +1,43 @@
+name: CI & Deploy to Render
+
+on:
+  push:
+    branches: [ main ]         # run on pushes to main
+  pull_request:
+    branches: [ main ]         # run tests on PRs into main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 02-coding-interview   # <--- your app folder
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: 02-coding-interview/package-lock.json
+
+      - name: Install deps
+        run: |
+          npm install
+          npm install --workspace web @rollup/rollup-linux-x64-gnu --no-save
+
+
+      - name: Run tests
+        run: npm test      # or `npm run test` if that's the exact script
+
+  deploy:
+    needs: test                          # only run if test job succeeds
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deployment
+        run: curl "$RENDER_DEPLOY_HOOK_URL"
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
