@@ -28,14 +28,36 @@ Install all workspace dependencies (from the `02-coding-interview` folder):
 npm install
 ```
 
-### Run with Docker
-You can build and run the full stack using Docker Compose from the `02-coding-interview` directory:
+### Docker (single guide)
+The app is fully containerized with a single image that serves both the compiled React client and the collaboration API. Start from a clean machine with **Docker** + **Docker Compose** installed and run everything from the `02-coding-interview` directory.
 
-```bash
-docker compose up --build
-```
+1. Build the image (uses Debian `node:20-bookworm-slim` to avoid Rollup musl issues):
+   ```bash
+   docker compose build
+   ```
+   - Optional build arg if your WebSocket endpoint differs: `docker compose build --build-arg VITE_COLLAB_ENDPOINT=ws://example.com/collab`
 
-See [DOCKER.md](DOCKER.md) for details on configuration options and how to run the test suite inside a container. The image uses a Debian base (`node:20-bookworm-slim`) so Docker builds succeed even on environments where Alpine musl lacks Rollup's optional binaries.
+2. Run the stack (serves UI and WebSocket API on port 3001):
+   ```bash
+   docker compose up
+   ```
+   - App: http://localhost:3001/
+   - Health: http://localhost:3001/health
+   - WebSocket: ws://localhost:3001/collab/{room}
+
+3. Stop the stack:
+   ```bash
+   docker compose down
+   ```
+
+4. Run tests inside the container (uses the same image):
+   ```bash
+   docker compose run --rm app npm test
+   ```
+
+Runtime env vars you can override in `docker-compose.yml` or via `docker compose run -e ...`:
+- `PORT` (default `3001`)
+- `WEBSOCKET_PATH` (default `/collab`)
 
 ### Run the collaboration server
 Starts a small Express server that only handles collaboration (no code execution):
