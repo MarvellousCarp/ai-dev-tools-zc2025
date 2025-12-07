@@ -11,6 +11,7 @@ This client ships with a browser-only runner that executes code inside a sandbox
 ## Python prerequisites
 - A modern browser with WebAssembly enabled (Pyodide uses WebAssembly under the hood).
 - Network access to `https://cdn.jsdelivr.net/pyodide/v0.24.1/full/` to download the runtime and standard library (~10–15 MB compressed). The first Python run may take a few seconds while this initializes; subsequent runs reuse the loaded runtime.
+- Expect to see “Initializing Pyodide…” during that first download; once the payload arrives, the message is replaced by your code’s stdout/stderr. If it never clears, verify CDN access and browser WASM settings.
 - Sandbox remains offline: after loading, the Python code still executes without network access inside the iframe.
 
 ## How it works

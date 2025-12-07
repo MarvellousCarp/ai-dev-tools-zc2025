@@ -98,6 +98,7 @@ If you see missing type-definition messages (for example, `vite/client` or React
 4. When another person opens the same URL, you should see their cursor and text changes live. Everyone in the room edits the same document.
 5. Use the language dropdown to switch syntax highlighting between JavaScript, TypeScript, Python, Java, and C++.
 6. Click **Run** to execute JavaScript/TypeScript snippets inside the sandboxed iframe. Python downloads Pyodide on demand and then runs entirely in the browser (no server execution). The output appears below the editor and stays in sync for everyone in the same room. Java and C++ remain collaboration-only (see `web/docs/runner.md`).
+   - Python specifics: the first run shows “Initializing Pyodide…” while the ~8–10 MB WebAssembly runtime downloads. Once ready, the message is replaced by your code’s stdout/stderr. If the message never clears, confirm the CDN URL is reachable and that your browser allows WASM and third-party script loads.
 7. Refreshing the page or sharing the link retains the document content for that room via the Yjs document synced through the collaboration server.
 
 ### Language quick templates
