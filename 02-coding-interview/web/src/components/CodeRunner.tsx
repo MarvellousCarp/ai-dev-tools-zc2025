@@ -102,7 +102,19 @@ const pythonSandboxTemplate = `
           ].join('\n');
 
           const execution = await pyodide.runPythonAsync(pythonCode);
-          send({ type: 'python-result', result: execution });
+          const plainResult =
+            execution && typeof execution === 'object' && 'toJs' in execution
+              ? // Convert the PyProxy/dict into a structured-cloneable plain object for postMessage.
+                (execution as { toJs: (opts?: object) => unknown; destroy?: () => void }).toJs({
+                  dict_converter: Object.fromEntries,
+                })
+              : execution;
+
+          if (execution && typeof execution === 'object' && 'destroy' in execution) {
+            (execution as { destroy: () => void }).destroy();
+          }
+
+          send({ type: 'python-result', result: plainResult });
         } catch (err) {
           send({ type: 'error', text: err?.message ?? String(err) });
         }
