@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 WORKDIR /app
 
 # Install dependencies separately to leverage Docker layer caching
@@ -10,7 +10,7 @@ COPY src ./src
 RUN npm run build
 
 # Runtime image
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001

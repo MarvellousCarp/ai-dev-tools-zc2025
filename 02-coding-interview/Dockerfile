@@ -1,12 +1,14 @@
 # Multi-stage build to bundle web and server into a single container
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 WORKDIR /app
 
 # Install workspace dependencies first for better caching
 COPY package*.json ./
 COPY server/package*.json server/tsconfig.json ./server/
 COPY web/package*.json ./web/
-RUN npm ci
+RUN npm install
+# 🔧 Workaround Rollup optional dependency bug on Linux
+RUN npm install --workspace web @rollup/rollup-linux-x64-gnu --no-save
 
 # Copy sources and build both applications
 COPY server ./server
@@ -15,7 +17,7 @@ RUN npm run build --workspace web
 RUN npm run build --workspace server
 
 # Runtime image
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
