@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Install dependencies separately to leverage Docker layer caching
 COPY package*.json tsconfig.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source and build the server
 COPY src ./src
