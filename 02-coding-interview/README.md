@@ -28,6 +28,15 @@ Install all workspace dependencies (from the `02-coding-interview` folder):
 npm install
 ```
 
+### Run with Docker
+You can build and run the full stack using Docker Compose from the `02-coding-interview` directory:
+
+```bash
+docker compose up --build
+```
+
+See [DOCKER.md](DOCKER.md) for details on configuration options and how to run the test suite inside a container.
+
 ### Run the collaboration server
 Starts a small Express server that only handles collaboration (no code execution):
 ```bash
