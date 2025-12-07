@@ -24,7 +24,10 @@ jobs:
           cache-dependency-path: 02-coding-interview/package-lock.json
 
       - name: Install deps
-        run: npm install
+        run: |
+          npm install
+          npm install --workspace web @rollup/rollup-linux-x64-gnu --no-save
+
 
       - name: Run tests
         run: npm test      # or `npm run test` if that's the exact script
