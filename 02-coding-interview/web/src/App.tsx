@@ -21,7 +21,18 @@ export default function App() {
   const settingsRef = useRef<Y.Map<LanguageId>>();
   const languageRef = useRef(language);
 
-  const websocketUrl = useMemo(() => import.meta.env.VITE_COLLAB_ENDPOINT ?? 'ws://localhost:3001/collab', []);
+  const websocketUrl = useMemo(() => {
+  // If env var is set, use it (handy for debugging)
+  if (import.meta.env.VITE_COLLAB_ENDPOINT) {
+    return import.meta.env.VITE_COLLAB_ENDPOINT as string;
+  }
+
+  // Otherwise, derive it from the current page URL
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  return `${protocol}//${host}/collab`;
+}, []);
+
   const shareLink = useMemo(() => {
     const url = new URL(window.location.href);
     url.searchParams.set('room', roomId);
