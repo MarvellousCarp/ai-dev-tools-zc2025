@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  server:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - WEBSOCKET_PATH=/collab
+
+  web:
+    build: ./web
+    depends_on:
+      - server
+    ports:
+      - "4173:4173"
+    environment:
+      - VITE_COLLAB_ENDPOINT=ws://server:3001/collab
