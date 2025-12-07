@@ -13,6 +13,8 @@ From the `02-coding-interview` directory:
 docker compose build
 ```
 
+> **Note:** The image uses the Debian-based `node:20-bookworm-slim` base to avoid Alpine musl compatibility issues with Rollup's optional native binaries. Builds that previously failed with `@rollup/rollup-linux-x64-musl` missing should now succeed without extra steps.
+
 The build accepts an optional `VITE_COLLAB_ENDPOINT` build argument. Override it if the WebSocket endpoint differs from the default `ws://localhost:3001/collab`:
 
 ```bash

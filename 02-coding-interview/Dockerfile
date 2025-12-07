@@ -1,5 +1,5 @@
 # Build the web client and server
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 # Install dependencies using the workspace lockfile
@@ -18,7 +18,7 @@ ENV VITE_COLLAB_ENDPOINT=${VITE_COLLAB_ENDPOINT}
 RUN npm run build && npm --workspace server run build
 
 # Runtime image
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 

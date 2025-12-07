@@ -35,7 +35,7 @@ You can build and run the full stack using Docker Compose from the `02-coding-in
 docker compose up --build
 ```
 
-See [DOCKER.md](DOCKER.md) for details on configuration options and how to run the test suite inside a container.
+See [DOCKER.md](DOCKER.md) for details on configuration options and how to run the test suite inside a container. The image uses a Debian base (`node:20-bookworm-slim`) so Docker builds succeed even on environments where Alpine musl lacks Rollup's optional binaries.
 
 ### Run the collaboration server
 Starts a small Express server that only handles collaboration (no code execution):
