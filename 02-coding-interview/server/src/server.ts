@@ -3,6 +3,8 @@ import { AddressInfo } from 'net';
 import { createServer, type Server } from 'http';
 import { WebSocketServer } from 'ws';
 import { setupWSConnection } from 'y-websocket/bin/utils';
+import fs from 'fs';
+import path from 'path';
 
 type CollaborationServerOptions = {
   port?: number;
@@ -17,16 +19,36 @@ export function createCollaborationServer(options: CollaborationServerOptions = 
   const app = express();
   app.use(express.json());
 
+  const clientDistPath = path.resolve(__dirname, '..', '..', 'web', 'dist');
+  const hasClientBuild = fs.existsSync(clientDistPath);
+
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   app.get('/', (_req, res) => {
+    if (hasClientBuild) {
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+      return;
+    }
+
     res.json({
       message: 'Coding interview collaboration server running',
       websocketPath,
     });
   });
+
+  if (hasClientBuild) {
+    app.use(express.static(clientDistPath));
+    app.get('*', (req, res) => {
+      if (req.path.startsWith(websocketPath)) {
+        res.status(404).json({ error: 'WebSocket endpoint is upgrade-only' });
+        return;
+      }
+
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    });
+  }
 
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true });
