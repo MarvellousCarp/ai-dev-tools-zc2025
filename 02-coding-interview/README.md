@@ -81,6 +81,38 @@ What they cover:
 
 If you see missing type-definition messages (for example, `vite/client` or React typings) during the build, delete any partial installs (`rm -rf node_modules package-lock.json`) and rerun `npm install` from the repo root so the workspace hoists common `@types/*` packages correctly.
 
+## Docker usage (server + web)
+The `02-coding-interview` folder is self-contained for containerized runs. Everything below assumes commands are executed from this directory.
+
+### 1) Build images
+```bash
+docker compose build
+```
+- Builds the collaboration server image from `server/Dockerfile` and the web client image from `web/Dockerfile`.
+
+### 2) Start the stack
+```bash
+docker compose up -d
+```
+- Starts two containers:
+  - **server** on `http://localhost:3001` (health check at `/health`, WebSocket path `/collab`).
+  - **web** on `http://localhost:4173` (served via `vite preview`) pointing to the server’s WebSocket endpoint at `ws://server:3001/collab`.
+- Logs: `docker compose logs -f` (or scope to one service: `docker compose logs -f server`).
+
+### 3) Visit the app
+- Open `http://localhost:4173/` in a browser.
+- A room ID is appended automatically; share the full URL to collaborate.
+
+### 4) Stop and clean up
+```bash
+docker compose down
+```
+- Remove images too: `docker compose down --rmi local`.
+
+### Customization
+- Override ports or paths via `docker-compose.yml` environment variables, e.g. `PORT`, `WEBSOCKET_PATH`, or `VITE_COLLAB_ENDPOINT` (for alternate server hosts such as a remote deployment).
+- To rebuild after code changes, rerun `docker compose build` and `docker compose up -d`.
+
 ### Troubleshooting installs
 - Dependencies are pinned to published versions. `y-websocket` is locked to `1.5.4`, which is the newest 1.x release published to the npm registry, and `y-protocols` is pinned to `^1.0.6` to align with the Yjs 13 + y-protocols 1.x stack. Higher 1.5.x numbers (for example `1.5.10` or `1.5.12`) and newer majors (2.x/3.x) are not available on all mirrors and may also be incompatible with this dependency set. You can confirm what your registry exposes with `npm view y-websocket versions --json`.
 - Ensure you run `npm install` from the workspace root so tools like `tsx` are installed for the server.
