@@ -59,11 +59,15 @@ If the browser shows a blank screen:
 - Check the dev server console for build errors—fixing TypeScript/ESLint errors locally prevents silent failures in the browser.
 - Verify the collaboration server is reachable at `http://localhost:3001/health` and that `VITE_COLLAB_ENDPOINT` matches `WEBSOCKET_PATH`.
 
-### Build and lint
+### Build, serve, and lint
 ```bash
 npm run build   # builds the web client
+npm start       # serves the built client + collaboration server at http://localhost:3001
 npm run lint    # lints the web client
 ```
+
+> The `npm start` command expects a built client in `web/dist`. Run `npm run build` first to avoid seeing only the JSON server
+> response when visiting `http://localhost:3001/`.
 
 ### Tests
 Lightweight checks to prevent regressions and catch blank-screen errors early:

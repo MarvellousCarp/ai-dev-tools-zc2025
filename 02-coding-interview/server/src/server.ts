@@ -3,6 +3,8 @@ import { AddressInfo } from 'net';
 import { createServer, type Server } from 'http';
 import { WebSocketServer } from 'ws';
 import { setupWSConnection } from 'y-websocket/bin/utils';
+import path from 'path';
+import fs from 'fs';
 
 type CollaborationServerOptions = {
   port?: number;
@@ -21,12 +23,23 @@ export function createCollaborationServer(options: CollaborationServerOptions = 
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  app.get('/', (_req, res) => {
-    res.json({
-      message: 'Coding interview collaboration server running',
-      websocketPath,
+  const distDir = path.resolve(__dirname, '..', '..', 'web', 'dist');
+  const hasClientBundle = fs.existsSync(distDir);
+
+  if (hasClientBundle) {
+    app.use(express.static(distDir));
+
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(distDir, 'index.html'));
     });
-  });
+  } else {
+    app.get('/', (_req, res) => {
+      res.json({
+        message: 'Coding interview collaboration server running',
+        websocketPath,
+      });
+    });
+  }
 
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true });
